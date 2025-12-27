@@ -1,8 +1,8 @@
-# opencode-plugin-cross-repo
+# opencode-cross-repo
 
-OpenCode plugin for cross-repository operations with GitHub and GitLab support.
+An [OpenCode plugin](https://opencode.ai/docs/plugins/) for cross-repository operations with GitHub and GitLab support.
 
-## Why Cross-Repo?
+## Why? What?
 
 A cross-repo tool offers advantages over the built-in `webfetch` tool:
 
@@ -169,4 +169,4 @@ OpenCode:
 
 ## License
 
-Apache-2.0
+Apache-2.0 licensed. See the LICENSE file for details.
