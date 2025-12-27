@@ -27,6 +27,7 @@
 		"@opencode-ai/plugin": "^1.0.190"
 	},
 	"devDependencies": {
+		"@types/bun": "^1.2.17",
 		"@types/node": "^22.19.3",
 		"typescript": "^5.9.3",
 		"unbuild": "^3.5.0",
