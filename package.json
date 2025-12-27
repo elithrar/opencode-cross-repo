@@ -15,10 +15,10 @@
 		"dist"
 	],
 	"scripts": {
-		"build": "unbuild",
-		"dev": "unbuild --stub",
-		"test": "vitest",
-		"typecheck": "tsc --noEmit"
+		"build": "bun run unbuild",
+		"dev": "bun run unbuild --stub",
+		"test": "bun run vitest",
+		"typecheck": "bun run tsc --noEmit"
 	},
 	"dependencies": {
 		"shescape": "^2.1.7"
