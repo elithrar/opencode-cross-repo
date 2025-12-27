@@ -4,12 +4,12 @@ OpenCode plugin for cross-repository operations with GitHub and GitLab support.
 
 ## Why Cross-Repo?
 
-A cross-repo tool offers significant advantages over simpler alternatives like `webfetch`:
+A cross-repo tool offers advantages over the built-in `webfetch` tool:
 
-- **Full codebase access** - Grep across the entire repository for symbols, config files, and patterns. Find where functions are used, trace dependencies, and understand code structure.
+- **Full codebase access** - because it can clone repos, it can grep across a repository vs. fetching files one at a time.
 - **Multi-repo operations** - Operate on multiple repositories at once. Open PRs to update workflows, READMEs, or upgrade dependencies across related repos in a single session.
 - **Platform support** - Works with both GitHub and GitLab for PRs/MRs, and should work with vanilla git remotes when running locally.
-- **GitHub CLI integration** - Operates within OpenCode's [GitHub CLI](https://opencode.ai/docs/github/) to perform cross-repo tasks when the orchestrating app or `GITHUB_TOKEN` has appropriate permissions.
+- **GitHub CLI integration** - can operate within OpenCode's [GitHub CLI](https://opencode.ai/docs/github/) to perform cross-repo tasks when the orchestrating app or `GITHUB_TOKEN` has appropriate permissions.
 
 ## Installation
 
