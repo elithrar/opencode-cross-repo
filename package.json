@@ -15,10 +15,10 @@
 		"dist"
 	],
 	"scripts": {
-		"build": "unbuild",
-		"dev": "unbuild --stub",
-		"test": "vitest",
-		"typecheck": "tsc --noEmit"
+		"build": "bun run unbuild",
+		"dev": "bun run unbuild --stub",
+		"test": "bun run vitest",
+		"typecheck": "bun run tsc --noEmit"
 	},
 	"dependencies": {
 		"shescape": "^2.1.7"
@@ -27,6 +27,7 @@
 		"@opencode-ai/plugin": "^1.0.190"
 	},
 	"devDependencies": {
+		"@types/bun": "^1.2.17",
 		"@types/node": "^22.19.3",
 		"typescript": "^5.9.3",
 		"unbuild": "^3.5.0",
