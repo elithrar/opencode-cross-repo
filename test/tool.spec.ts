@@ -43,6 +43,15 @@ describe("crossRepoTool", () => {
 			expect(crossRepoTool.description).toContain("glab CLI")
 			expect(crossRepoTool.description).toContain("gh CLI")
 		})
+
+		it("documents self-hosted GitHub support", () => {
+			expect(crossRepoTool.description).toContain('containing "github"')
+		})
+
+		it("documents exec operation for grep/find", () => {
+			expect(crossRepoTool.description).toContain("exec")
+			expect(crossRepoTool.description).toContain("grep")
+		})
 	})
 
 	describe("execute() error handling", () => {
@@ -123,6 +132,13 @@ describe("crossRepoTool", () => {
 })
 
 describe("crossRepo plugin factory", () => {
+	const originalEnv = { ...process.env }
+
+	afterEach(() => {
+		process.env = { ...originalEnv }
+		resetPlatformCache()
+	})
+
 	it("exports a plugin factory function", () => {
 		expect(typeof crossRepo).toBe("function")
 	})
@@ -146,5 +162,20 @@ describe("crossRepo plugin factory", () => {
 		const hooks = await plugin({} as any)
 		expect(hooks.tool!["cross-repo"]).toBeDefined()
 		expect(process.env.GITLAB_HOST).toBe("gitlab.mycompany.com")
+	})
+
+	it("accepts githubHost option for GitHub Enterprise", async () => {
+		const plugin = crossRepo({ githubHost: "github.mycompany.com" })
+		const hooks = await plugin({} as any)
+		expect(hooks.tool!["cross-repo"]).toBeDefined()
+		expect(process.env.GITHUB_HOST).toBe("github.mycompany.com")
+	})
+
+	it("accepts combined platform and host options", async () => {
+		const plugin = crossRepo({ platform: "github", githubHost: "github.enterprise.acme.com" })
+		const hooks = await plugin({} as any)
+		expect(hooks.tool!["cross-repo"]).toBeDefined()
+		expect(process.env.CROSS_REPO_PLATFORM).toBe("github")
+		expect(process.env.GITHUB_HOST).toBe("github.enterprise.acme.com")
 	})
 })

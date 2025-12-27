@@ -2,7 +2,14 @@
 
 OpenCode plugin for cross-repository operations with GitHub and GitLab support.
 
-Make changes across multiple repos in a single session - clone, edit, commit, push, and open PRs/MRs from OpenCode.
+## Why Cross-Repo?
+
+A cross-repo tool offers advantages over the built-in `webfetch` tool:
+
+- **Full codebase access** - because it can clone repos, it can grep across a repository vs. fetching files one at a time.
+- **Multi-repo operations** - Operate on multiple repositories at once. Open PRs to update workflows, READMEs, or upgrade dependencies across related repos in a single session.
+- **Platform support** - Works with both GitHub and GitLab for PRs/MRs, and should work with vanilla git remotes when running locally.
+- **GitHub CLI integration** - can operate within OpenCode's [GitHub CLI](https://opencode.ai/docs/github/) to perform cross-repo tasks when the orchestrating app or `GITHUB_TOKEN` has appropriate permissions.
 
 ## Installation
 
@@ -45,21 +52,31 @@ export default crossRepo({
 
 The plugin auto-detects the platform from your current repo's git remote:
 
-| Remote Host | Platform |
-|-------------|----------|
-| `github.com` | GitHub |
-| `gitlab.com` | GitLab |
-| Hostname contains `gitlab` | GitLab |
-| Other | GitHub (default) |
+| Remote Host | Platform | CLI Used |
+|-------------|----------|----------|
+| `github.com` | GitHub | `gh` |
+| Host contains `github` (e.g., `github.mycompany.com`) | GitHub | `gh` |
+| `gitlab.com` | GitLab | `glab` |
+| Host contains `gitlab` (e.g., `gitlab.mycompany.com`) | GitLab | `glab` |
+| Other hosts | GitHub (default) | `gh` |
 
 Override with environment variable:
 
 ```bash
 CROSS_REPO_PLATFORM=gitlab  # or github
-GITLAB_HOST=gitlab.corp.com # for self-hosted
+GITLAB_HOST=gitlab.corp.com # for self-hosted GitLab
+GITHUB_HOST=github.corp.com # for self-hosted GitHub (GitHub Enterprise)
 ```
 
 ## Authentication
+
+### Execution Scenarios & Provider Support
+
+| Scenario | GitHub | GitLab |
+|----------|--------|--------|
+| **CI Environment** | GitHub Actions: OIDC token exchange (preferred) -> `GITHUB_TOKEN` env var | GitLab CI: `GL_TOKEN` -> `GITLAB_TOKEN` -> `CI_JOB_TOKEN` |
+| **Interactive** (terminal with TTY) | `gh auth login` OAuth -> `GH_TOKEN`/`GITHUB_TOKEN` env var | `glab auth login` OAuth -> `GL_TOKEN`/`GITLAB_TOKEN` env var |
+| **Non-interactive** (sandboxes, scripts, piped contexts) | `gh` CLI if authenticated -> `GH_TOKEN`/`GITHUB_TOKEN` env var | `glab` CLI if authenticated -> `GL_TOKEN`/`GITLAB_TOKEN` env var |
 
 ### GitHub
 
@@ -91,25 +108,49 @@ GITLAB_HOST=gitlab.corp.com # for self-hosted
 | `pr` | Create PR (GitHub) or MR (GitLab) |
 | `exec` | Run shell command in repo directory |
 
-## Example Workflow
+### Operation Mapping by Platform
+
+| Operation | GitHub | GitLab |
+|-----------|--------|--------|
+| `pr` | `gh pr create` (Pull Request) | `glab mr create` (Merge Request) |
+| Git user | `bonk[bot]@users.noreply.github.com` | `bonk-bot@users.noreply.gitlab.com` |
+
+## Example Workflows
+
+### Coordinated Multi-Repo Updates
 
 ```
 User: Update the SDK and docs repos to use the new API endpoint
 
 OpenCode:
 1. clone owner=myorg repo=sdk
-2. write path=src/api.ts content="..."
-3. branch name=update-api-endpoint
-4. commit message="Update API endpoint to v2"
-5. push
-6. pr title="Update API endpoint" message="## Summary\n- Updated endpoint to v2..."
+2. exec command="grep -r 'api.v1.example.com' --include='*.ts'"
+3. write path=src/api.ts content="..."
+4. branch name=update-api-endpoint
+5. commit message="Update API endpoint to v2"
+6. push
+7. pr title="Update API endpoint" message="## Summary\n- Updated endpoint to v2..."
 
-7. clone owner=myorg repo=docs
-8. write path=api/endpoints.md content="..."
-9. branch name=update-api-docs
-10. commit message="Document new v2 endpoint"
-11. push
-12. pr title="Document v2 endpoint" message="## Summary\n- Added v2 endpoint docs..."
+8. clone owner=myorg repo=docs
+9. write path=api/endpoints.md content="..."
+10. branch name=update-api-docs
+11. commit message="Document new v2 endpoint"
+12. push
+13. pr title="Document v2 endpoint" message="## Summary\n- Added v2 endpoint docs..."
+```
+
+### Cross-Repo Code Analysis
+
+```
+User: Find all usages of the deprecated AuthService class across our repos
+
+OpenCode:
+1. clone owner=myorg repo=frontend
+2. exec command="grep -rn 'AuthService' --include='*.ts' --include='*.tsx'"
+3. clone owner=myorg repo=backend
+4. exec command="grep -rn 'AuthService' --include='*.py'"
+5. clone owner=myorg repo=mobile
+6. exec command="grep -rn 'AuthService' --include='*.kt' --include='*.swift'"
 ```
 
 ## Requirements
@@ -122,6 +163,7 @@ OpenCode:
 
 - [OpenCode Plugins](https://opencode.ai/docs/plugins/)
 - [OpenCode Custom Tools](https://opencode.ai/docs/custom-tools/)
+- [OpenCode GitHub CLI](https://opencode.ai/docs/github/)
 - [gh CLI](https://cli.github.com/)
 - [glab CLI](https://gitlab.com/gitlab-org/cli)
 
