@@ -35,7 +35,7 @@ function getRepoKey(sessionID: string, owner: string, repo: string): string {
 }
 
 // Detect platform from git remote URL
-// Supports: github.com, gitlab.com, and self-hosted GitLab instances
+// Supports: github.com, gitlab.com, self-hosted GitHub, and self-hosted GitLab instances
 export function detectPlatformFromRemote(remoteUrl: string): PlatformInfo | null {
 	if (!remoteUrl) return null
 
@@ -65,7 +65,7 @@ export function detectPlatformFromRemote(remoteUrl: string): PlatformInfo | null
 	// Normalize host (remove port if present for comparison)
 	const hostWithoutPort = host.split(":")[0].toLowerCase()
 
-	// GitHub detection
+	// GitHub.com detection
 	if (hostWithoutPort === "github.com") {
 		return { platform: "github", host }
 	}
@@ -75,9 +75,14 @@ export function detectPlatformFromRemote(remoteUrl: string): PlatformInfo | null
 		return { platform: "gitlab", host }
 	}
 
+	// Self-hosted GitHub detection (GitHub Enterprise)
+	// - Contains "github" in hostname (e.g., github.mycompany.com)
+	if (hostWithoutPort.includes("github")) {
+		return { platform: "github", host }
+	}
+
 	// Self-hosted GitLab detection via common patterns
 	// - Contains "gitlab" in hostname
-	// - OR uses default GitLab port (could be configured, so not reliable alone)
 	if (hostWithoutPort.includes("gitlab")) {
 		return { platform: "gitlab", host }
 	}
@@ -104,7 +109,7 @@ export async function detectCurrentRepoPlatform(): Promise<PlatformInfo | null> 
 		return cachedPlatform
 	}
 	if (envPlatform === "github") {
-		cachedPlatform = { platform: "github", host: "github.com" }
+		cachedPlatform = { platform: "github", host: process.env.GITHUB_HOST || "github.com" }
 		return cachedPlatform
 	}
 
@@ -520,8 +525,11 @@ async function createPR(
 		const bodyArg = body ? `--body ${shellEscape(body)}` : `--body ${shellEscape("")}`
 		const baseArg = base ? `--base ${shellEscape(base)}` : ""
 
+		// For self-hosted GitHub (GitHub Enterprise), set GH_HOST
+		const hostEnv = platform.host !== "github.com" ? `GH_HOST=${shellEscape(platform.host)} ` : ""
+
 		const prResult = await run(
-			`cd ${shellEscape(repoPath)} && GH_TOKEN=${shellEscape(token)} gh pr create --title ${shellEscape(title)} ${bodyArg} ${baseArg} --head ${shellEscape(headBranch)}`
+			`cd ${shellEscape(repoPath)} && ${hostEnv}GH_TOKEN=${shellEscape(token)} gh pr create --title ${shellEscape(title)} ${bodyArg} ${baseArg} --head ${shellEscape(headBranch)}`
 		)
 
 		if (!prResult.success) {
@@ -679,9 +687,11 @@ Use this tool when you need to:
 - Create coordinated changes across multiple repos (e.g. "update the SDK and the examples repo")
 - Open PRs/MRs in related repositories based on changes in the current repo
 - Summarize changes from the current repo and apply related changes to another repo
+- Grep across entire repositories for symbols, config, and patterns
 
 **Platform Detection**: The tool auto-detects whether to use GitHub or GitLab based on the current repo's git remote:
 - github.com -> GitHub (uses gh CLI)
+- Hosts containing "github" (e.g., github.mycompany.com) -> GitHub (uses gh CLI)
 - gitlab.com or hosts containing "gitlab" -> GitLab (uses glab CLI)
 - Set CROSS_REPO_PLATFORM=github|gitlab to override detection
 
@@ -701,11 +711,11 @@ Supported operations:
 - commit: Stage all changes and commit with a message.
 - push: Push the current branch to remote.
 - pr: Create a pull request (GitHub) or merge request (GitLab). IMPORTANT: Always include a meaningful body/description via the 'message' parameter.
-- exec: Run arbitrary shell commands in the cloned repo directory.
+- exec: Run arbitrary shell commands in the cloned repo directory (useful for grep, find, etc.).
 
 Typical workflow:
 1. clone the target repo
-2. Use read/write/list operations to view and modify files
+2. Use read/write/list/exec operations to view and modify files
 3. branch to create a feature branch
 4. commit your changes
 5. push the branch
@@ -893,6 +903,8 @@ export interface CrossRepoOptions {
 	platform?: Platform
 	// Custom GitLab host for self-hosted instances
 	gitlabHost?: string
+	// Custom GitHub host for self-hosted instances (GitHub Enterprise)
+	githubHost?: string
 }
 
 export const crossRepo = (options: CrossRepoOptions = {}): Plugin => {
@@ -903,6 +915,9 @@ export const crossRepo = (options: CrossRepoOptions = {}): Plugin => {
 		}
 		if (options.gitlabHost) {
 			process.env.GITLAB_HOST = options.gitlabHost
+		}
+		if (options.githubHost) {
+			process.env.GITHUB_HOST = options.githubHost
 		}
 
 		return {

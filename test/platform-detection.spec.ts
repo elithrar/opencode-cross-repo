@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { detectPlatformFromRemote, resetPlatformCache } from "../src/index"
 
 describe("detectPlatformFromRemote", () => {
-	describe("GitHub detection", () => {
+	describe("GitHub.com detection", () => {
 		it("detects github.com from HTTPS URL", () => {
 			const result = detectPlatformFromRemote("https://github.com/owner/repo.git")
 			expect(result).toEqual({ platform: "github", host: "github.com" })
@@ -16,6 +16,28 @@ describe("detectPlatformFromRemote", () => {
 		it("detects github.com from HTTPS URL with token", () => {
 			const result = detectPlatformFromRemote("https://x-access-token:TOKEN@github.com/owner/repo.git")
 			expect(result).toEqual({ platform: "github", host: "github.com" })
+		})
+	})
+
+	describe("Self-hosted GitHub (GitHub Enterprise) detection", () => {
+		it("detects self-hosted GitHub from hostname containing 'github'", () => {
+			const result = detectPlatformFromRemote("https://github.mycompany.com/team/repo.git")
+			expect(result).toEqual({ platform: "github", host: "github.mycompany.com" })
+		})
+
+		it("detects self-hosted GitHub with 'github' subdomain", () => {
+			const result = detectPlatformFromRemote("git@github.internal.corp:team/repo.git")
+			expect(result).toEqual({ platform: "github", host: "github.internal.corp" })
+		})
+
+		it("detects self-hosted GitHub with port in hostname", () => {
+			const result = detectPlatformFromRemote("https://github.mycompany.com:8443/team/repo.git")
+			expect(result).toEqual({ platform: "github", host: "github.mycompany.com:8443" })
+		})
+
+		it("detects GitHub Enterprise Server with token auth", () => {
+			const result = detectPlatformFromRemote("https://x-access-token:TOKEN@github.enterprise.acme.com/org/repo.git")
+			expect(result).toEqual({ platform: "github", host: "github.enterprise.acme.com" })
 		})
 	})
 
@@ -70,7 +92,7 @@ describe("detectPlatformFromRemote", () => {
 		})
 
 		it("defaults to GitHub for unknown hosts", () => {
-			// Unknown host without 'gitlab' in name defaults to GitHub
+			// Unknown host without 'gitlab' or 'github' in name defaults to GitHub
 			const result = detectPlatformFromRemote("https://git.mycompany.com/team/repo.git")
 			expect(result).toEqual({ platform: "github", host: "git.mycompany.com" })
 		})
@@ -78,6 +100,18 @@ describe("detectPlatformFromRemote", () => {
 		it("handles Bitbucket-like URLs (defaults to GitHub)", () => {
 			const result = detectPlatformFromRemote("https://bitbucket.org/team/repo.git")
 			expect(result).toEqual({ platform: "github", host: "bitbucket.org" })
+		})
+
+		it("prioritizes exact 'github.com' match over pattern", () => {
+			const result = detectPlatformFromRemote("https://github.com/owner/repo.git")
+			expect(result?.platform).toBe("github")
+			expect(result?.host).toBe("github.com")
+		})
+
+		it("prioritizes exact 'gitlab.com' match over pattern", () => {
+			const result = detectPlatformFromRemote("https://gitlab.com/owner/repo.git")
+			expect(result?.platform).toBe("gitlab")
+			expect(result?.host).toBe("gitlab.com")
 		})
 	})
 })
@@ -120,5 +154,15 @@ describe("platform detection caching", () => {
 
 		const result = await detectCurrentRepoPlatform()
 		expect(result).toEqual({ platform: "gitlab", host: "gitlab.mycorp.com" })
+	})
+
+	it("uses GITHUB_HOST when platform is github", async () => {
+		process.env.CROSS_REPO_PLATFORM = "github"
+		process.env.GITHUB_HOST = "github.mycorp.com"
+		const { detectCurrentRepoPlatform } = await import("../src/index")
+		resetPlatformCache()
+
+		const result = await detectCurrentRepoPlatform()
+		expect(result).toEqual({ platform: "github", host: "github.mycorp.com" })
 	})
 })
