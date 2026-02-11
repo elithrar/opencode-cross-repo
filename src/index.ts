@@ -1029,7 +1029,7 @@ Typical workflow:
   },
 });
 
-// Plugin factory for advanced configuration
+// Plugin factory for advanced configuration (use in .opencode/plugins/ files)
 export interface CrossRepoOptions {
   // Override platform detection
   platform?: Platform;
@@ -1057,6 +1057,16 @@ export const crossRepo = (options: CrossRepoOptions = {}): Plugin => {
         "cross-repo": crossRepoTool,
       },
     };
+  };
+};
+
+// Direct plugin export for npm plugin loading via opencode.json "plugin" array.
+// OpenCode discovers named exports and calls them as Plugin functions.
+export const CrossRepoPlugin: Plugin = async () => {
+  return {
+    tool: {
+      "cross-repo": crossRepoTool,
+    },
   };
 };
 
