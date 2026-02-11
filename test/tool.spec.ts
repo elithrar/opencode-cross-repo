@@ -5,6 +5,7 @@ import {
   resetPlatformCache,
   isValidRepoIdentifier,
   safeResolvePath,
+  sanitizeGitOutput,
 } from "../src/index";
 import { mkdtempSync, writeFileSync, mkdirSync, symlinkSync, rmSync, realpathSync } from "fs";
 import { tmpdir } from "os";
@@ -280,6 +281,26 @@ describe("safeResolvePath", () => {
     // Create a symlink pointing outside the base directory
     symlinkSync("/tmp", join(testDir, "escape-link"));
     expect(safeResolvePath(testDir, "escape-link/some-file")).toBeNull();
+  });
+});
+
+describe("sanitizeGitOutput", () => {
+  it("strips tokens from clone URLs in error output", () => {
+    const stderr =
+      "fatal: repository 'https://x-access-token:ghp_secret123@github.com/owner/repo.git/' not found";
+    expect(sanitizeGitOutput(stderr)).toBe(
+      "fatal: repository 'https://x-access-token:***@github.com/owner/repo.git/' not found",
+    );
+  });
+
+  it("strips multiple token occurrences", () => {
+    const stderr = "x-access-token:abc@host1 and x-access-token:def@host2";
+    expect(sanitizeGitOutput(stderr)).toBe("x-access-token:***@host1 and x-access-token:***@host2");
+  });
+
+  it("passes through output without tokens unchanged", () => {
+    const clean = "fatal: not a git repository";
+    expect(sanitizeGitOutput(clean)).toBe(clean);
   });
 });
 

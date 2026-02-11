@@ -20,6 +20,11 @@ function shellEscape(str: string): string {
   return shescape.quote(str);
 }
 
+// Strip embedded credentials from git error output to prevent token leakage
+export function sanitizeGitOutput(output: string): string {
+  return output.replace(/x-access-token:[^@]+@/g, "x-access-token:***@");
+}
+
 // Validates GitHub/GitLab owner/repo identifiers to prevent path traversal via malicious names.
 // GitHub allows: alphanumeric, hyphens, underscores, and dots (with restrictions).
 // We're slightly more permissive but block path separators and traversal sequences.
@@ -506,7 +511,7 @@ async function cloneRepo(
   );
 
   if (!cloneResult.success) {
-    return { success: false, error: `Clone failed: ${cloneResult.stderr}` };
+    return { success: false, error: `Clone failed: ${sanitizeGitOutput(cloneResult.stderr)}` };
   }
 
   const defaultBranchResult = await run(
@@ -547,7 +552,7 @@ async function createBranch(
       `git -C ${shellEscape(repoPath)} checkout ${shellEscape(branchName)}`,
     );
     if (!checkoutResult.success) {
-      return { success: false, error: `Failed to create/checkout branch: ${result.stderr}` };
+      return { success: false, error: `Failed to create/checkout branch: ${sanitizeGitOutput(result.stderr)}` };
     }
   }
 
@@ -601,7 +606,7 @@ async function pushBranch(
   );
 
   if (!pushResult.success) {
-    return { success: false, error: `Push failed: ${pushResult.stderr}` };
+    return { success: false, error: `Push failed: ${sanitizeGitOutput(pushResult.stderr)}` };
   }
 
   return { success: true };
@@ -630,7 +635,7 @@ async function createPR(
     );
 
     if (!prResult.success) {
-      return { success: false, error: `PR creation failed: ${prResult.stderr}` };
+      return { success: false, error: `PR creation failed: ${sanitizeGitOutput(prResult.stderr)}` };
     }
 
     const prUrl = prResult.stdout.trim();
@@ -651,7 +656,7 @@ async function createPR(
     );
 
     if (!mrResult.success) {
-      return { success: false, error: `MR creation failed: ${mrResult.stderr}` };
+      return { success: false, error: `MR creation failed: ${sanitizeGitOutput(mrResult.stderr)}` };
     }
 
     const mrUrl = mrResult.stdout.trim();

@@ -46,7 +46,7 @@ The plugin works out of the box with no configuration. For self-hosted instances
 
 ```typescript
 // .opencode/plugins/cross-repo.ts
-import { crossRepo } from "opencode-cross-repo"
+import { crossRepo } from "opencode-cross-repo/advanced"
 
 export default crossRepo({
   platform: "gitlab",           // override auto-detection
@@ -58,7 +58,7 @@ Or as a standalone tool (no options):
 
 ```typescript
 // .opencode/tool/cross-repo.ts
-export { default } from "opencode-cross-repo"
+export { default } from "opencode-cross-repo/advanced"
 ```
 
 ## Platform detection
