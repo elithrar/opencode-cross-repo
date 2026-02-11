@@ -1,6 +1,6 @@
 {
   "name": "opencode-cross-repo",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "OpenCode plugin for cross-repository operations with GitHub and GitLab support",
   "keywords": [
     "cross-repo",
