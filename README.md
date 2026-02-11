@@ -1,172 +1,156 @@
-# opencode-cross-repo
+# opencode-plugin-cross-repo
 
-An [OpenCode plugin](https://opencode.ai/docs/plugins/) for cross-repository operations with GitHub and GitLab support.
+An [OpenCode](https://opencode.ai) plugin that adds a cross-repository operations tool. Clone repos, grep across codebases, open PRs/MRs, and coordinate changes across multiple repositories in a single session.
 
-## Why? What?
+## Why?
 
-A cross-repo tool offers advantages over the built-in `webfetch` tool:
+OpenCode's built-in tools operate on the current working directory. This plugin lets the agent reach into other repos:
 
-- **Full codebase access** - because it can clone repos, it can grep across a repository vs. fetching files one at a time.
-- **Multi-repo operations** - Operate on multiple repositories at once. Open PRs to update workflows, READMEs, or upgrade dependencies across related repos in a single session.
-- **Platform support** - Works with both GitHub and GitLab for PRs/MRs, and should work with vanilla git remotes when running locally.
-- **GitHub CLI integration** - can operate within OpenCode's [GitHub CLI](https://opencode.ai/docs/github/) to perform cross-repo tasks when the orchestrating app or `GITHUB_TOKEN` has appropriate permissions.
+- **Full codebase access** -- clone and grep across entire repositories instead of fetching files one at a time
+- **Multi-repo operations** -- update workflows, READMEs, or dependencies across related repos and open PRs in one session
+- **Platform support** -- works with GitHub and GitLab, including self-hosted instances (GitHub Enterprise, self-hosted GitLab)
+- **Context-aware auth** -- automatically picks up `gh`/`glab` CLI tokens, env vars, or OIDC in GitHub Actions
 
-## Installation
+## Install
 
-```bash
-bun add opencode-plugin-cross-repo
+### From npm (recommended)
+
+Add the plugin to your `opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["opencode-plugin-cross-repo"]
+}
 ```
 
-## Usage
+OpenCode installs npm plugins automatically at startup. See the [plugin docs](https://opencode.ai/docs/plugins/#from-npm).
 
-### As a Plugin
+### From a local file
 
-Create `.opencode/plugin/cross-repo.ts`:
+Copy `src/index.ts` into your project as `.opencode/tool/cross-repo.ts` and add a `package.json` to `.opencode/` with the required dependency:
 
-```typescript
-import { crossRepo } from "opencode-plugin-cross-repo"
-
-export default crossRepo()
+```json
+{
+  "dependencies": {
+    "shescape": "^2.1.7"
+  }
+}
 ```
 
-### As a Tool
+See the [local file docs](https://opencode.ai/docs/plugins/#from-local-files).
 
-Create `.opencode/tool/cross-repo.ts`:
+## Configuration
 
-```typescript
-export { default } from "opencode-plugin-cross-repo"
-```
-
-### With Options
+The plugin works out of the box with no configuration. For self-hosted instances or to override platform detection, use the plugin factory:
 
 ```typescript
+// .opencode/plugins/cross-repo.ts
 import { crossRepo } from "opencode-plugin-cross-repo"
 
 export default crossRepo({
-  platform: "gitlab",           // Override auto-detection
-  gitlabHost: "gitlab.corp.com" // Self-hosted GitLab
+  platform: "gitlab",           // override auto-detection
+  gitlabHost: "gitlab.corp.com" // self-hosted GitLab
 })
 ```
 
-## Platform Detection
+Or as a standalone tool (no options):
 
-The plugin auto-detects the platform from your current repo's git remote:
+```typescript
+// .opencode/tool/cross-repo.ts
+export { default } from "opencode-plugin-cross-repo"
+```
 
-| Remote Host | Platform | CLI Used |
-|-------------|----------|----------|
+## Platform detection
+
+The plugin detects GitHub vs. GitLab from the current repo's git remote:
+
+| Remote host | Detected platform | CLI |
+|---|---|---|
 | `github.com` | GitHub | `gh` |
-| Host contains `github` (e.g., `github.mycompany.com`) | GitHub | `gh` |
+| Hostname contains `github` | GitHub | `gh` |
 | `gitlab.com` | GitLab | `glab` |
-| Host contains `gitlab` (e.g., `gitlab.mycompany.com`) | GitLab | `glab` |
-| Other hosts | GitHub (default) | `gh` |
+| Hostname contains `gitlab` | GitLab | `glab` |
+| Other | GitHub (default) | `gh` |
 
-Override with environment variable:
+Override with env vars:
 
 ```bash
-CROSS_REPO_PLATFORM=gitlab  # or github
-GITLAB_HOST=gitlab.corp.com # for self-hosted GitLab
-GITHUB_HOST=github.corp.com # for self-hosted GitHub (GitHub Enterprise)
+CROSS_REPO_PLATFORM=gitlab     # force gitlab
+GITLAB_HOST=gitlab.corp.com    # self-hosted GitLab
+GITHUB_HOST=github.corp.com    # GitHub Enterprise
 ```
 
 ## Authentication
 
-### Execution Scenarios & Provider Support
-
-| Scenario | GitHub | GitLab |
-|----------|--------|--------|
-| **CI Environment** | GitHub Actions: OIDC token exchange (preferred) -> `GITHUB_TOKEN` env var | GitLab CI: `GL_TOKEN` -> `GITLAB_TOKEN` -> `CI_JOB_TOKEN` |
-| **Interactive** (terminal with TTY) | `gh auth login` OAuth -> `GH_TOKEN`/`GITHUB_TOKEN` env var | `glab auth login` OAuth -> `GL_TOKEN`/`GITLAB_TOKEN` env var |
-| **Non-interactive** (sandboxes, scripts, piped contexts) | `gh` CLI if authenticated -> `GH_TOKEN`/`GITHUB_TOKEN` env var | `glab` CLI if authenticated -> `GL_TOKEN`/`GITLAB_TOKEN` env var |
-
-### GitHub
-
-| Context | Auth Method |
-|---------|-------------|
-| GitHub Actions | OIDC (requires `id-token: write`), falls back to `GITHUB_TOKEN` |
-| Interactive | `gh auth login`, falls back to `GH_TOKEN` / `GITHUB_TOKEN` |
-| Non-interactive | `gh` CLI token, falls back to `GH_TOKEN` / `GITHUB_TOKEN` |
-
-### GitLab
-
-| Context | Auth Method |
-|---------|-------------|
-| GitLab CI | `GL_TOKEN` / `GITLAB_TOKEN` / `CI_JOB_TOKEN` |
-| Interactive | `glab auth login`, falls back to `GL_TOKEN` / `GITLAB_TOKEN` |
-| Non-interactive | `glab` CLI token, falls back to `GL_TOKEN` / `GITLAB_TOKEN` |
+| Context | GitHub | GitLab |
+|---|---|---|
+| **CI** | OIDC token exchange (preferred) -> `GITHUB_TOKEN` | `GL_TOKEN` -> `GITLAB_TOKEN` -> `CI_JOB_TOKEN` |
+| **Interactive** | `gh auth login` -> `GH_TOKEN`/`GITHUB_TOKEN` | `glab auth login` -> `GL_TOKEN`/`GITLAB_TOKEN` |
+| **Non-interactive** | `gh` CLI token -> `GH_TOKEN`/`GITHUB_TOKEN` | `glab` CLI token -> `GL_TOKEN`/`GITLAB_TOKEN` |
 
 ## Operations
 
 | Operation | Description |
-|-----------|-------------|
+|---|---|
 | `clone` | Shallow clone to `{tmpdir}/{sessionID}/{owner}-{repo}` |
-| `read` | Read file from cloned repo |
-| `write` | Write file to cloned repo |
-| `list` | List files in cloned repo |
-| `branch` | Create and checkout new branch |
+| `read` | Read a file (path relative to repo root) |
+| `write` | Write a file (path relative to repo root) |
+| `list` | List files (optionally under a subpath) |
+| `branch` | Create and checkout a new branch |
 | `commit` | Stage all changes and commit |
 | `push` | Push current branch to remote |
-| `pr` | Create PR (GitHub) or MR (GitLab) |
-| `exec` | Run shell command in repo directory |
+| `pr` | Create a PR (GitHub) or MR (GitLab) |
+| `exec` | Run a shell command in the repo directory |
 
-### Operation Mapping by Platform
+## Example workflows
 
-| Operation | GitHub | GitLab |
-|-----------|--------|--------|
-| `pr` | `gh pr create` (Pull Request) | `glab mr create` (Merge Request) |
-| Git user | `bonk[bot]@users.noreply.github.com` | `bonk-bot@users.noreply.gitlab.com` |
-
-## Example Workflows
-
-### Coordinated Multi-Repo Updates
+**Coordinated multi-repo update:**
 
 ```
 User: Update the SDK and docs repos to use the new API endpoint
 
-OpenCode:
+Agent:
 1. clone owner=myorg repo=sdk
 2. exec command="grep -r 'api.v1.example.com' --include='*.ts'"
 3. write path=src/api.ts content="..."
 4. branch name=update-api-endpoint
-5. commit message="Update API endpoint to v2"
+5. commit message="update API endpoint to v2"
 6. push
-7. pr title="Update API endpoint" message="## Summary\n- Updated endpoint to v2..."
-
+7. pr title="update API endpoint" message="..."
 8. clone owner=myorg repo=docs
 9. write path=api/endpoints.md content="..."
 10. branch name=update-api-docs
-11. commit message="Document new v2 endpoint"
+11. commit message="document new v2 endpoint"
 12. push
-13. pr title="Document v2 endpoint" message="## Summary\n- Added v2 endpoint docs..."
+13. pr title="document v2 endpoint" message="..."
 ```
 
-### Cross-Repo Code Analysis
+**Cross-repo code search:**
 
 ```
 User: Find all usages of the deprecated AuthService class across our repos
 
-OpenCode:
+Agent:
 1. clone owner=myorg repo=frontend
 2. exec command="grep -rn 'AuthService' --include='*.ts' --include='*.tsx'"
 3. clone owner=myorg repo=backend
 4. exec command="grep -rn 'AuthService' --include='*.py'"
-5. clone owner=myorg repo=mobile
-6. exec command="grep -rn 'AuthService' --include='*.kt' --include='*.swift'"
 ```
 
 ## Requirements
 
-- [Bun](https://bun.sh) runtime (OpenCode runs on Bun)
+- [Bun](https://bun.sh) runtime (OpenCode uses Bun)
 - `gh` CLI for GitHub operations
 - `glab` CLI for GitLab operations
 
-## Documentation
+## Links
 
-- [OpenCode Plugins](https://opencode.ai/docs/plugins/)
-- [OpenCode Custom Tools](https://opencode.ai/docs/custom-tools/)
-- [OpenCode GitHub CLI](https://opencode.ai/docs/github/)
+- [OpenCode plugins](https://opencode.ai/docs/plugins/)
+- [OpenCode custom tools](https://opencode.ai/docs/custom-tools/)
 - [gh CLI](https://cli.github.com/)
 - [glab CLI](https://gitlab.com/gitlab-org/cli)
 
 ## License
 
-Apache-2.0 licensed. See the LICENSE file for details.
+Apache-2.0

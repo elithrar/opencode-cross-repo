@@ -1,56 +1,60 @@
 {
-	"name": "opencode-plugin-cross-repo",
-	"version": "0.1.0",
-	"description": "OpenCode plugin for cross-repository operations with GitHub and GitLab support",
-	"type": "module",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.mjs"
-		}
-	},
-	"main": "./dist/index.mjs",
-	"types": "./dist/index.d.ts",
-	"files": [
-		"dist"
-	],
-	"scripts": {
-		"build": "bun run unbuild",
-		"dev": "bun run unbuild --stub",
-		"test": "bun run vitest",
-		"typecheck": "bun run tsc --noEmit"
-	},
-	"dependencies": {
-		"shescape": "^2.1.7"
-	},
-	"optionalDependencies": {
-		"@opencode-ai/plugin": "^1.0.190"
-	},
-	"devDependencies": {
-		"@types/bun": "^1.2.17",
-		"@types/node": "^22.19.3",
-		"typescript": "^5.9.3",
-		"unbuild": "^3.5.0",
-		"vitest": "^3.2.4"
-	},
-	"publishConfig": {
-		"access": "public"
-	},
-	"keywords": [
-		"opencode",
-		"plugin",
-		"github",
-		"gitlab",
-		"cross-repo"
-	],
-	"author": "elithrar",
-	"license": "Apache-2.0",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/elithrar/opencode-cross-repo.git"
-	},
-	"bugs": {
-		"url": "https://github.com/elithrar/opencode-cross-repo/issues"
-	},
-	"homepage": "https://github.com/elithrar/opencode-cross-repo#readme"
+  "name": "opencode-plugin-cross-repo",
+  "version": "0.2.0",
+  "description": "OpenCode plugin for cross-repository operations with GitHub and GitLab support",
+  "keywords": [
+    "cross-repo",
+    "github",
+    "gitlab",
+    "opencode",
+    "plugin"
+  ],
+  "homepage": "https://github.com/elithrar/opencode-cross-repo#readme",
+  "bugs": {
+    "url": "https://github.com/elithrar/opencode-cross-repo/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "elithrar",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elithrar/opencode-cross-repo.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "bun run unbuild",
+    "dev": "bun run unbuild --stub",
+    "test": "bun run vitest",
+    "typecheck": "bun run tsc --noEmit",
+    "lint": "oxlint",
+    "format": "oxfmt ."
+  },
+  "dependencies": {
+    "shescape": "^2.1.7"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.17",
+    "@types/node": "^22.19.3",
+    "oxfmt": "^0.31.0",
+    "oxlint": "^1.46.0",
+    "typescript": "^5.9.3",
+    "unbuild": "^3.5.0",
+    "vitest": "^3.2.4"
+  },
+  "optionalDependencies": {
+    "@opencode-ai/plugin": "^1.1.53"
+  }
 }
