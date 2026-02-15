@@ -37,5 +37,8 @@ jobs:
       - name: Build
         run: bun run build
 
+      - name: Update npm for trusted publishing (requires >= 11.5.1)
+        run: npm install -g npm@latest
+
       - name: Publish
         run: npm publish --provenance --access public
