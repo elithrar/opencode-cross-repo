@@ -565,7 +565,7 @@ async function commitChanges(
 ): Promise<{ success: boolean; commit?: string; error?: string }> {
   const addResult = await run(`git -C ${shellEscape(repoPath)} add -A`);
   if (!addResult.success) {
-    return { success: false, error: `Failed to stage changes: ${addResult.stderr}` };
+    return { success: false, error: `Failed to stage changes: ${sanitizeGitOutput(addResult.stderr)}` };
   }
 
   const statusResult = await run(`git -C ${shellEscape(repoPath)} status --porcelain`);
@@ -577,7 +577,7 @@ async function commitChanges(
     `git -C ${shellEscape(repoPath)} commit -m ${shellEscape(message)}`,
   );
   if (!commitResult.success) {
-    return { success: false, error: `Failed to commit: ${commitResult.stderr}` };
+    return { success: false, error: `Failed to commit: ${sanitizeGitOutput(commitResult.stderr)}` };
   }
 
   const shaResult = await run(`git -C ${shellEscape(repoPath)} rev-parse HEAD`);
@@ -745,22 +745,13 @@ async function execCommand(
   repoPath: string,
   command: string,
 ): Promise<{ success: boolean; stdout?: string; stderr?: string; error?: string }> {
-  // Audit log: exec is a powerful operation - log for visibility
-  console.log(
-    JSON.stringify({
-      event: "cross_repo_exec",
-      repo_path: repoPath,
-      command_preview: command.slice(0, 100) + (command.length > 100 ? "..." : ""),
-    }),
-  );
-
   const result = await run(`cd ${shellEscape(repoPath)} && ${command}`);
 
   return {
     success: result.success,
-    stdout: result.stdout,
-    stderr: result.stderr,
-    error: result.success ? undefined : result.stderr,
+    stdout: sanitizeGitOutput(result.stdout),
+    stderr: sanitizeGitOutput(result.stderr),
+    error: result.success ? undefined : sanitizeGitOutput(result.stderr),
   };
 }
 
@@ -1028,7 +1019,6 @@ Typical workflow:
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`cross-repo tool error [${args.operation}]:`, message);
       return stringify({ success: false, error: `Unexpected error: ${message}` });
     }
   },
