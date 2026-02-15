@@ -2,18 +2,7 @@
 
 An [OpenCode](https://opencode.ai) plugin that adds a cross-repository operations tool. Clone repos, grep across codebases, open PRs/MRs, and coordinate changes across multiple repositories in a single session.
 
-## Why?
-
-OpenCode's built-in tools operate on the current working directory. This plugin lets the agent reach into other repos:
-
-- **Full codebase access** -- clone and grep across entire repositories instead of fetching files one at a time
-- **Multi-repo operations** -- update workflows, READMEs, or dependencies across related repos and open PRs in one session
-- **Platform support** -- works with GitHub and GitLab, including self-hosted instances (GitHub Enterprise, self-hosted GitLab)
-- **Context-aware auth** -- automatically picks up `gh`/`glab` CLI tokens, env vars, or OIDC in GitHub Actions
-
 ## Install
-
-### From npm (recommended)
 
 Add the plugin to your `opencode.json`:
 
@@ -24,84 +13,9 @@ Add the plugin to your `opencode.json`:
 }
 ```
 
-OpenCode installs npm plugins automatically at startup. See the [plugin docs](https://opencode.ai/docs/plugins/#from-npm).
+OpenCode installs npm plugins automatically at startup. See the [plugin docs](https://opencode.ai/docs/plugins/).
 
-### From a local file
-
-Copy `src/index.ts` into your project as `.opencode/tool/cross-repo.ts` and add a `package.json` to `.opencode/` with the required dependency:
-
-```json
-{
-  "dependencies": {
-    "shescape": "^2.1.7"
-  }
-}
-```
-
-See the [local file docs](https://opencode.ai/docs/plugins/#from-local-files).
-
-## Configuration
-
-The plugin works out of the box with no configuration. For self-hosted instances or to override platform detection, use the plugin factory:
-
-```typescript
-// .opencode/plugins/cross-repo.ts
-import { crossRepo } from "opencode-cross-repo/advanced"
-
-export default crossRepo({
-  platform: "gitlab",           // override auto-detection
-  gitlabHost: "gitlab.corp.com" // self-hosted GitLab
-})
-```
-
-Or as a standalone tool (no options):
-
-```typescript
-// .opencode/tool/cross-repo.ts
-export { default } from "opencode-cross-repo/advanced"
-```
-
-## Platform detection
-
-The plugin detects GitHub vs. GitLab from the current repo's git remote:
-
-| Remote host | Detected platform | CLI |
-|---|---|---|
-| `github.com` | GitHub | `gh` |
-| Hostname contains `github` | GitHub | `gh` |
-| `gitlab.com` | GitLab | `glab` |
-| Hostname contains `gitlab` | GitLab | `glab` |
-| Other | GitHub (default) | `gh` |
-
-Override with env vars:
-
-```bash
-CROSS_REPO_PLATFORM=gitlab     # force gitlab
-GITLAB_HOST=gitlab.corp.com    # self-hosted GitLab
-GITHUB_HOST=github.corp.com    # GitHub Enterprise
-```
-
-## Authentication
-
-| Context | GitHub | GitLab |
-|---|---|---|
-| **CI** | OIDC token exchange (preferred) -> `GITHUB_TOKEN` | `GL_TOKEN` -> `GITLAB_TOKEN` -> `CI_JOB_TOKEN` |
-| **Interactive** | `gh auth login` -> `GH_TOKEN`/`GITHUB_TOKEN` | `glab auth login` -> `GL_TOKEN`/`GITLAB_TOKEN` |
-| **Non-interactive** | `gh` CLI token -> `GH_TOKEN`/`GITHUB_TOKEN` | `glab` CLI token -> `GL_TOKEN`/`GITLAB_TOKEN` |
-
-## Operations
-
-| Operation | Description |
-|---|---|
-| `clone` | Shallow clone to `{tmpdir}/{sessionID}/{owner}-{repo}` |
-| `read` | Read a file (path relative to repo root) |
-| `write` | Write a file (path relative to repo root) |
-| `list` | List files (optionally under a subpath) |
-| `branch` | Create and checkout a new branch |
-| `commit` | Stage all changes and commit |
-| `push` | Push current branch to remote |
-| `pr` | Create a PR (GitHub) or MR (GitLab) |
-| `exec` | Run a shell command in the repo directory |
+You can also install from a local file — copy `src/index.ts` to `.opencode/tool/cross-repo.ts` with a `shescape` dependency. See the [local file docs](https://opencode.ai/docs/plugins/#from-local-files).
 
 ## Example workflows
 
@@ -138,18 +52,60 @@ Agent:
 4. exec command="grep -rn 'AuthService' --include='*.py'"
 ```
 
+## Operations
+
+| Operation | Description |
+|---|---|
+| `clone` | Shallow clone to a session-scoped temp directory |
+| `read` | Read a file (path relative to repo root) |
+| `write` | Write a file (path relative to repo root) |
+| `list` | List files (optionally under a subpath) |
+| `branch` | Create and checkout a new branch |
+| `commit` | Stage all changes and commit |
+| `push` | Push current branch to remote |
+| `pr` | Create a PR (GitHub) or MR (GitLab) |
+| `exec` | Run a shell command in the repo directory |
+
+## Authentication
+
+Works automatically in most cases:
+
+- **Interactive** — picks up `gh auth login` / `glab auth login` tokens, falls back to `GH_TOKEN`/`GITHUB_TOKEN` or `GL_TOKEN`/`GITLAB_TOKEN` env vars
+- **CI** — uses OIDC token exchange in GitHub Actions (preferred), or `GITHUB_TOKEN` / `GL_TOKEN` / `GITLAB_TOKEN` / `CI_JOB_TOKEN` env vars
+
+## Platform detection and configuration
+
+The plugin detects GitHub vs. GitLab from the current repo's git remote. Hostnames containing `github` use `gh`, hostnames containing `gitlab` use `glab`, and unknown hosts default to GitHub.
+
+Override with env vars when auto-detection doesn't work:
+
+```bash
+CROSS_REPO_PLATFORM=gitlab     # force gitlab
+GITLAB_HOST=gitlab.corp.com    # self-hosted GitLab
+GITHUB_HOST=github.corp.com    # GitHub Enterprise
+```
+
+For self-hosted instances, use the plugin factory:
+
+```typescript
+// .opencode/plugins/cross-repo.ts
+import { crossRepo } from "opencode-cross-repo/advanced"
+
+export default crossRepo({
+  platform: "gitlab",
+  gitlabHost: "gitlab.corp.com"
+})
+```
+
 ## Requirements
 
 - [Bun](https://bun.sh) runtime (OpenCode uses Bun)
-- `gh` CLI for GitHub operations
-- `glab` CLI for GitLab operations
+- `gh` CLI for GitHub, `glab` CLI for GitLab
 
 ## Links
 
-- [OpenCode plugins](https://opencode.ai/docs/plugins/)
-- [OpenCode custom tools](https://opencode.ai/docs/custom-tools/)
-- [gh CLI](https://cli.github.com/)
-- [glab CLI](https://gitlab.com/gitlab-org/cli)
+- [OpenCode plugins](https://opencode.ai/docs/plugins/) · [Custom tools](https://opencode.ai/docs/custom-tools/)
+- [gh CLI](https://cli.github.com/) · [glab CLI](https://gitlab.com/gitlab-org/cli)
 
 ## License
 
